@@ -999,13 +999,31 @@
             // 練習問題（部屋詳細情報から取得）
             if (roomDetails[roomId] && roomDetails[roomId].problems) {
                 const problems = roomDetails[roomId].problems;
+                const progress = loadProblemProgress();
+
+                // 統計情報
+                const totalProblems = problems.length;
+                const solvedProblems = problems.filter((p, i) => progress[`${roomId}_${i}`] === 'correct').length;
+
                 content += `<div style="margin-top: 20px; padding: 15px; background: #fffbeb; border-radius: 5px; border-left: 4px solid #fbbf24;">`;
-                content += `<strong style="color: #f59e0b;">📝 練習問題</strong><br><br>`;
+                content += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">`;
+                content += `<strong style="color: #f59e0b;">📝 練習問題</strong>`;
+                content += `<span style="font-size: 12px; color: #92400e;">正解: ${solvedProblems}/${totalProblems}問 (${Math.round(solvedProblems/totalProblems*100)}%)</span>`;
+                content += `</div>`;
+
                 problems.forEach((prob, index) => {
+                    const problemKey = `${roomId}_${index}`;
+                    const status = progress[problemKey];
+                    let statusBadge = '';
+
+                    if (status === 'correct') {
+                        statusBadge = '<span style="color: #10b981; font-weight: bold; margin-left: 10px;">✓ 正解済み</span>';
+                    }
+
                     content += `<div style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 5px;">`;
-                    content += `<strong>問題${index + 1}:</strong> ${prob.question}<br>`;
+                    content += `<strong>問題${index + 1}:</strong> ${prob.question}${statusBadge}<br>`;
                     content += `<div style="margin-top: 10px;">`;
-                    content += `<input type="text" id="answer-input-${index}" placeholder="答えを入力してください" style="padding: 8px; border: 2px solid #cbd5e1; border-radius: 3px; width: 200px; font-size: 14px;">`;
+                    content += `<input type="text" id="answer-input-${index}" placeholder="答えを入力してください" onkeypress="handleEnterKey(event, ${index}, '${roomId}')" style="padding: 8px; border: 2px solid #cbd5e1; border-radius: 3px; width: 200px; font-size: 14px;">`;
                     content += `<button onclick="checkAnswer(${index}, '${roomId}')" style="margin-left: 5px; padding: 8px 15px; background: #8b5cf6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;">📝 回答する</button>`;
                     content += `</div>`;
                     content += `<div style="margin-top: 8px;">`;
@@ -1040,6 +1058,37 @@
         }
 
 
+        // Enterキーで回答する
+        function handleEnterKey(event, index, roomId) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                checkAnswer(index, roomId);
+            }
+        }
+
+        // 問題進捗を読み込む
+        function loadProblemProgress() {
+            try {
+                const saved = localStorage.getItem('elementary_math_progress');
+                return saved ? JSON.parse(saved) : {};
+            } catch (e) {
+                console.error('進捗の読み込みに失敗:', e);
+                return {};
+            }
+        }
+
+        // 問題進捗を保存する
+        function saveProblemProgress(problemKey, status) {
+            try {
+                const progress = loadProblemProgress();
+                progress[problemKey] = status;
+                localStorage.setItem('elementary_math_progress', JSON.stringify(progress));
+                console.log(`進捗保存: ${problemKey} = ${status}`);
+            } catch (e) {
+                console.error('進捗の保存に失敗:', e);
+            }
+        }
+
         // 回答をチェックする関数
         function checkAnswer(index, roomId) {
             const detail = roomDetails[roomId];
@@ -1061,6 +1110,7 @@
             // 正解判定（複数の正解形式に対応）
             const correctAnswer = prob.answer.toLowerCase().replace(/\s/g, '');
             const userAnswerNormalized = userAnswer.toLowerCase().replace(/\s/g, '');
+            const problemKey = `${roomId}_${index}`;
 
             if (correctAnswer.includes(userAnswerNormalized) || userAnswerNormalized.includes(correctAnswer)) {
                 resultDiv.style.display = 'block';
@@ -1068,6 +1118,21 @@
                 resultDiv.style.color = '#065f46';
                 resultDiv.innerHTML = '<strong>🎉 正解です！すばらしい！</strong>';
                 inputElement.style.borderColor = '#10b981';
+
+                // 進捗を保存
+                saveProblemProgress(problemKey, 'correct');
+
+                // 正解バッジを追加
+                const problemDiv = inputElement.closest('div').parentElement;
+                const existingBadge = problemDiv.querySelector('span[style*="✓ 正解済み"]');
+                if (!existingBadge) {
+                    const badge = document.createElement('span');
+                    badge.style.color = '#10b981';
+                    badge.style.fontWeight = 'bold';
+                    badge.style.marginLeft = '10px';
+                    badge.textContent = '✓ 正解済み';
+                    problemDiv.querySelector('strong').insertAdjacentElement('afterend', badge);
+                }
             } else {
                 resultDiv.style.display = 'block';
                 resultDiv.style.background = '#fee2e2';
