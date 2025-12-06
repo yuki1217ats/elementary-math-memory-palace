@@ -143,7 +143,7 @@
         scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.7, 2);
+        camera.position.set(0, -0.3, 2);  // 地下フロア（-2）+ 目線の高さ（1.7）= -0.3
         camera.rotation.order = 'YXZ';
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -711,6 +711,16 @@
             minimapScale = 6;
         }
 
+        // フロア名マッピング関数
+        function getFloorName(yPosition) {
+            if (yPosition > 16) return '5階（6年生）';
+            if (yPosition > 12) return '4階（5年生）';
+            if (yPosition > 8) return '3階（4年生）';
+            if (yPosition > 4) return '2階（3年生）';
+            if (yPosition > 0) return '1階（2年生）';
+            return '地下（1年生）';
+        }
+
         // ミニマップのダブルクリックで部屋に移動
         minimapCanvas.addEventListener('dblclick', (e) => {
             const rect = minimapCanvas.getBoundingClientRect();
@@ -721,13 +731,15 @@
             const worldX = (clickX - minimapOffsetX) / minimapScale;
             const worldZ = (clickY - minimapOffsetY) / minimapScale;
 
-            const currentFloor = camera.position.y > 16 ? 'floor5' : camera.position.y > 12 ? 'floor4' : camera.position.y > 8 ? 'floor3' : camera.position.y > 4 ? 'floor2' : camera.position.y > 0 ? 'floor1' : 'basement';
+            const currentFloorName = getFloorName(camera.position.y);
 
             // 最も近い部屋を検索
             let nearestRoom = null;
             let minDist = Infinity;
             palaceData.rooms.forEach(room => {
-                if (room.floor !== currentFloor) return;
+                // y座標でフロア判定
+                const roomFloorName = getFloorName(room.position[1]);
+                if (roomFloorName !== currentFloorName) return;
                 const [rx, ry, rz] = room.position;
                 const dist = Math.sqrt((worldX - rx)**2 + (worldZ - rz)**2);
                 if (dist < minDist) {
@@ -747,10 +759,12 @@
             minimapCtx.fillStyle = '#000';
             minimapCtx.fillRect(0, 0, 250, 250);
 
-            const currentFloor = camera.position.y > 16 ? 'floor5' : camera.position.y > 12 ? 'floor4' : camera.position.y > 8 ? 'floor3' : camera.position.y > 4 ? 'floor2' : camera.position.y > 0 ? 'floor1' : 'basement';
+            const currentFloorName = getFloorName(camera.position.y);
 
             palaceData.rooms.forEach((room, index) => {
-                if (room.floor !== currentFloor) return;
+                // y座標でフロア判定
+                const roomFloorName = getFloorName(room.position[1]);
+                if (roomFloorName !== currentFloorName) return;
                 const [x, y, z] = room.position;
                 const [w, h, d] = room.size;
 
@@ -773,7 +787,9 @@
             palaceData.paths.forEach(path => {
                 const from = roomMap[path.from];
                 const to = roomMap[path.to];
-                if (!from || !to || from.data.floor !== currentFloor) return;
+                // y座標でフロア判定
+                const pathFloorName = getFloorName(from.position[1]);
+                if (!from || !to || pathFloorName !== currentFloorName) return;
                 minimapCtx.strokeStyle = path.color;
                 minimapCtx.lineWidth = 3;
                 minimapCtx.beginPath();
