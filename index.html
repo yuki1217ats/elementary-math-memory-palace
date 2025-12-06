@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学生算数記憶の宮殿 - 3Dビューア</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; background: #1a1a1a; }
+        #container { width: 100vw; height: 100vh; }
+        #info { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.8); color: white; padding: 15px; border-radius: 8px; max-width: 300px; font-size: 14px; line-height: 1.6; }
+        #current-floor { cursor: pointer; padding: 5px; border-radius: 5px; transition: background 0.2s; }
+        #current-floor:hover { background: rgba(96, 165, 250, 0.3); }
+        #floor-menu { display: none; position: absolute; top: 70px; left: 20px; background: rgba(0, 0, 0, 0.9); border: 2px solid #60a5fa; border-radius: 8px; padding: 10px; z-index: 100; }
+        #floor-menu div { padding: 8px 15px; margin: 5px 0; cursor: pointer; border-radius: 5px; transition: background 0.2s; color: #e0f2fe; font-weight: 500; }
+        #floor-menu div:hover { background: rgba(96, 165, 250, 0.5); color: #ffffff; }
+        #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 15px; border-radius: 8px; text-align: center; }
+        #controls p { margin: 5px 0; font-size: 13px; }
+        #controls .close-btn { position: absolute; top: 5px; right: 10px; background: none; border: none; color: #ffffff; font-size: 20px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+        #controls .close-btn:hover { opacity: 1; }
+        #export-buttons { position: absolute; top: 20px; right: 20px; }
+        #export-buttons button { display: block; margin: 5px 0; padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        #export-buttons button:hover { background: #059669; }
+        #music-player { position: absolute; top: 120px; right: 20px; width: 250px; background: rgba(0, 0, 0, 0.85); padding: 15px; border-radius: 8px; color: white; font-size: 13px; }
+        #music-player h3 { margin: 0 0 10px 0; font-size: 15px; color: #10b981; }
+        #music-player input[type="file"] { display: none; }
+        #music-player .file-label { display: block; padding: 8px 12px; background: #3b82f6; color: white; border-radius: 5px; cursor: pointer; text-align: center; margin-bottom: 10px; transition: background 0.2s; }
+        #music-player .file-label:hover { background: #2563eb; }
+        #music-player .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+        #music-player .controls button { flex: 1; padding: 8px; background: #6b7280; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.2s; }
+        #music-player .controls button:hover { background: #4b5563; }
+        #music-player .controls button.playing { background: #ef4444; }
+        #music-player .volume-control { margin-bottom: 10px; }
+        #music-player .volume-control label { display: block; margin-bottom: 5px; }
+        #music-player .volume-control input[type="range"] { width: 100%; }
+        #music-player .loop-control { display: flex; align-items: center; gap: 8px; }
+        #music-player .loop-control input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        #music-player .now-playing { margin-top: 10px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; font-size: 12px; word-break: break-all; }
+        #minimap { position: absolute; bottom: 20px; left: 20px; width: 250px; height: 250px; background: rgba(0, 0, 0, 0.9); border: 2px solid #60a5fa; border-radius: 8px; cursor: pointer; }
+        #minimap-controls { position: absolute; bottom: 280px; left: 20px; background: rgba(0, 0, 0, 0.8); padding: 5px; border-radius: 5px; }
+        #minimap-controls button { margin: 0 5px; padding: 5px 10px; background: #3b82f6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        #minimap-controls button:hover { background: #2563eb; }
+        #modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); max-width: 500px; max-height: 70vh; overflow-y: auto; z-index: 1000; }
+        #modal h2 { margin-bottom: 15px; color: #333; }
+        #modal p { margin: 10px 0; color: #666; line-height: 1.8; }
+        #modal .cases { margin-top: 15px; padding: 10px; background: #fffbeb; border-left: 4px solid #fbbf24; }
+        #modal button { margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        #modal button:hover { background: #2563eb; }
+        #modal .checkbox-container { margin: 20px 0; padding: 15px; background: #f0fdf4; border: 2px solid #86efac; border-radius: 8px; display: flex; align-items: center; cursor: pointer; transition: background 0.2s; }
+        #modal .checkbox-container:hover { background: #dcfce7; }
+        #modal .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; margin-right: 10px; cursor: pointer; }
+        #modal .checkbox-container label { font-size: 16px; font-weight: 500; color: #166534; cursor: pointer; user-select: none; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999; }
+        .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; pointer-events: none; }
+        .crosshair::before, .crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.8); }
+        .crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+        .crosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+        #stair-prompt { display: none; position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.9); color: #fbbf24; padding: 15px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; border: 2px solid #fbbf24; }
+
+        /* モバイル対応: BGMプレーヤーを非表示 */
+        @media (max-width: 768px) {
+            #music-player { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div class="crosshair"></div>
+    <div id="minimap-controls">
+        <button onclick="zoomMinimap(1.2)">🔍+</button>
+        <button onclick="zoomMinimap(0.8)">🔍-</button>
+        <button onclick="resetMinimapZoom()">リセット</button>
+    </div>
+    <canvas id="minimap"></canvas>
+
+    <div id="info">
+        <div><strong>📍 現在位置</strong></div>
+        <div id="current-floor" style="margin-top: 5px; color: #60a5fa;">地下フロア（1年生） 🔽</div>
+    </div>
+
+    <div id="export-buttons">
+        <button onclick="exportProgress()">📊 進捗をエクスポート</button>
+        <button onclick="exportHTML()">💾 HTMLをダウンロード</button>
+    </div>
+
+    <div id="music-player">
+        <h3>🎵 BGM</h3>
+        <label for="music-file" class="file-label">📁 音楽ファイルを選択</label>
+        <input type="file" id="music-file" accept="audio/*">
+        <div class="controls">
+            <button id="play-btn" onclick="togglePlay()">▶️ 再生</button>
+            <button onclick="stopMusic()">⏹️ 停止</button>
+        </div>
+        <div class="volume-control">
+            <label for="volume">🔊 音量: <span id="volume-value">50</span>%</label>
+            <input type="range" id="volume" min="0" max="100" value="50" onchange="changeVolume(this.value)">
+        </div>
+        <div class="loop-control">
+            <input type="checkbox" id="loop-checkbox" onchange="toggleLoop(this.checked)">
+            <label for="loop-checkbox">🔁 ループ再生</label>
+        </div>
+        <div class="now-playing" id="now-playing">曲が選択されていません</div>
+    </div>
+
+    <audio id="bg-music" style="display: none;"></audio>
+
+    <div id="floor-menu" style="display: none;">
+        <div data-floor="basement">📘 地下フロア（1年生）</div>
+        <div data-floor="floor1">📙 1階フロア（2年生）</div>
+        <div data-floor="floor2">📗 2階フロア（3年生）</div>
+        <div data-floor="floor3">📕 3階フロア（4年生）</div>
+        <div data-floor="floor4">📓 4階フロア（5年生）</div>
+        <div data-floor="floor5">📔 5階フロア（6年生）</div>
+    </div>
+
+    <div id="controls">
+        <button class="close-btn" onclick="document.getElementById('controls').style.display='none'">×</button>
+        <p><strong>操作方法</strong></p>
+        <p>🖱️ PC: ↑↓前進/後退 | ←→回転 | ドラッグ視点移動</p>
+        <p>📱 モバイル: 上下スワイプ前進/後退 | 左右スワイプ回転</p>
+        <p>クリック/タップ: 紙を読む | 階段で E キー: 上下の階へ</p>
+    </div>
+
+    <div id="stair-prompt">E キーで上の階へ</div>
+
+    <div id="overlay"></div>
+    <div id="modal">
+        <h2 id="modal-title"></h2>
+        <div id="modal-content"></div>
+        <button onclick="closeModal()">閉じる</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const palaceData = {"rooms":[{"id":"1年_10までのかず","position":[0,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"10までのかず","lines":["1から10までの数字を学びます。数える練習と数字の書き方を覚えましょう。"],"cases":[]},"name":"1年生・10までのかず"},{"id":"1年_なんばんめ","position":[5,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"なんばんめ","lines":["「前から3番目」「右から2番目」などの順序を学びます。"],"cases":[]},"name":"1年生・なんばんめ"},{"id":"1年_たしざん1けた","position":[10,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"たしざん（1けた）","lines":["1+1から9+9までのたしざんを学びます。"],"cases":[]},"name":"1年生・たしざん（1けた）"},{"id":"1年_ひきざん1けた","position":[15,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"ひきざん（1けた）","lines":["10-1から10-10までのひきざんを学びます。"],"cases":[]},"name":"1年生・ひきざん（1けた）"},{"id":"1年_おおきさくらべ","position":[20,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"おおきさくらべ","lines":["数の大きさ、長さ、重さなどをくらべます。"],"cases":[]},"name":"1年生・おおきさくらべ"},{"id":"1年_かたち","position":[25,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"かたち","lines":["さんかく、しかく、まるなどのかたちをおぼえます。"],"cases":[]},"name":"1年生・かたち"},{"id":"1年_とけい","position":[30,-2,0],"size":[3,3,3],"color":"#3b82f6","floor":"地下（1年生）","info":{"title":"とけい","lines":["なんじ、なんじはんのよみかたをおぼえます。"],"cases":[]},"name":"1年生・とけい"},{"id":"2年_100までのかず","position":[0,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"100までのかず","lines":["20、30、40...100までの数え方を学びます。"],"cases":[]},"name":"2年生・100までのかず"},{"id":"2年_たしざん2けた","position":[5,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"たしざん（2けた）","lines":["くりあがりのあるたしざんを学びます。"],"cases":[]},"name":"2年生・たしざん（2けた）"},{"id":"2年_ひきざん2けた","position":[10,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"ひきざん（2けた）","lines":["くりさがりのあるひきざんを学びます。"],"cases":[]},"name":"2年生・ひきざん（2けた）"},{"id":"2年_かけざん九九","position":[15,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"かけざん（九九）","lines":["2の段から9の段までの九九をおぼえます。"],"cases":[]},"name":"2年生・かけざん（九九）"},{"id":"2年_ながさ","position":[20,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"ながさ","lines":["cm、m、mmの使い分けを学びます。"],"cases":[]},"name":"2年生・ながさ"},{"id":"2年_時こくと時間","position":[25,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"時こくと時間","lines":["時こくのよみかた、時間のけいさんを学びます。"],"cases":[]},"name":"2年生・時こくと時間"},{"id":"2年_三角形と四角形","position":[30,2,0],"size":[3,3,3],"color":"#fbbf24","floor":"1階（2年生）","info":{"title":"三角形と四角形","lines":["へん、ちょう点、かくを学びます。"],"cases":[]},"name":"2年生・三角形と四角形"},{"id":"3年_大きな数","position":[0,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"大きな数","lines":["1000、10000などの大きな数を学びます。"],"cases":[]},"name":"3年生・大きな数"},{"id":"3年_3けたの計算","position":[5,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"3けたの計算","lines":["ひっさんのかきかたを学びます。"],"cases":[]},"name":"3年生・3けたの計算"},{"id":"3年_かけざんの筆算","position":[10,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"かけざんの筆算","lines":["2けた×1けた、2けた×2けたの筆算を学びます。"],"cases":[]},"name":"3年生・かけざんの筆算"},{"id":"3年_わり算の基礎","position":[15,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"わり算の基礎","lines":["わり算のいみ、あまりを学びます。"],"cases":[]},"name":"3年生・わり算の基礎"},{"id":"3年_分数の基礎","position":[20,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"分数の基礎","lines":["1/2、1/3、1/4などの分数を学びます。"],"cases":[]},"name":"3年生・分数の基礎"},{"id":"3年_円と球","position":[25,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"円と球","lines":["コンパスのつかいかた、半径を学びます。"],"cases":[]},"name":"3年生・円と球"},{"id":"3年_長さと重さ","position":[30,6,0],"size":[3,3,3],"color":"#10b981","floor":"2階（3年生）","info":{"title":"長さと重さ","lines":["km、t、gの単位を学びます。"],"cases":[]},"name":"3年生・長さと重さ"},{"id":"4年_億と兆","position":[0,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"大きな数（億・兆）","lines":["億、兆の単位を学びます。"],"cases":[]},"name":"4年生・大きな数（億・兆）"},{"id":"4年_わり算の筆算","position":[5,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"わり算の筆算","lines":["2けた÷1けた、3けた÷2けたの筆算を学びます。"],"cases":[]},"name":"4年生・わり算の筆算"},{"id":"4年_小数のたしざんひきざん","position":[10,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"小数のたしざん・ひきざん","lines":["0.1、0.01の小数の計算を学びます。"],"cases":[]},"name":"4年生・小数のたしざん・ひきざん"},{"id":"4年_分数の計算","position":[15,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"分数の計算","lines":["同じ分母のたしざん・ひきざんを学びます。"],"cases":[]},"name":"4年生・分数の計算"},{"id":"4年_面積","position":[20,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"面積","lines":["長方形、正方形の面積（cm²、m²）を学びます。"],"cases":[]},"name":"4年生・面積"},{"id":"4年_角度","position":[25,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"角度","lines":["角度のはかりかた、直角、えい角、どん角を学びます。"],"cases":[]},"name":"4年生・角度"},{"id":"4年_平行と垂直","position":[30,10,0],"size":[3,3,3],"color":"#f97316","floor":"3階（4年生）","info":{"title":"平行と垂直","lines":["平行線、すい線のひきかたを学びます。"],"cases":[]},"name":"4年生・平行と垂直"},{"id":"5年_小数のかけざんわり算","position":[0,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"小数のかけ算・わり算","lines":["小数のかけ算・わり算の筆算を学びます。"],"cases":[]},"name":"5年生・小数のかけ算・わり算"},{"id":"5年_分数のたしざんひきざん","position":[5,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"分数のたしざん・ひきざん","lines":["つう分、やく分を学びます。"],"cases":[]},"name":"5年生・分数のたしざん・ひきざん"},{"id":"5年_体積","position":[10,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"体積","lines":["立方体、直方体（cm³、m³）の体積を学びます。"],"cases":[]},"name":"5年生・体積"},{"id":"5年_平均","position":[15,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"平均","lines":["平均のもとめかたを学びます。"],"cases":[]},"name":"5年生・平均"},{"id":"5年_割合とパーセント","position":[20,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"割合とパーセント","lines":["％、ぶ合を学びます。"],"cases":[]},"name":"5年生・割合とパーセント"},{"id":"5年_比例","position":[25,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"比例","lines":["比例のグラフを学びます。"],"cases":[]},"name":"5年生・比例"},{"id":"5年_正多角形","position":[30,14,0],"size":[3,3,3],"color":"#a855f7","floor":"4階（5年生）","info":{"title":"正多角形","lines":["正三角形、正方形、正五角形などを学びます。"],"cases":[]},"name":"5年生・正多角形"},{"id":"6年_分数のかけざんわり算","position":[0,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"分数のかけ算・わり算","lines":["ぎゃく数、たい分数を学びます。"],"cases":[]},"name":"6年生・分数のかけ算・わり算"},{"id":"6年_比と比の値","position":[5,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"比と比の値","lines":["比のかん単化を学びます。"],"cases":[]},"name":"6年生・比と比の値"},{"id":"6年_拡大図と縮図","position":[10,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"拡大図と縮図","lines":["しゅく尺を学びます。"],"cases":[]},"name":"6年生・拡大図と縮図"},{"id":"6年_速さ","position":[15,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"速さ","lines":["速さ・道のり・時間のかん係を学びます。"],"cases":[]},"name":"6年生・速さ"},{"id":"6年_円の面積","position":[20,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"円の面積","lines":["πのつかいかたを学びます。"],"cases":[]},"name":"6年生・円の面積"},{"id":"6年_立体の体積","position":[25,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"立体の体積","lines":["円柱、角柱の体積を学びます。"],"cases":[]},"name":"6年生・立体の体積"},{"id":"6年_対称な図形","position":[30,18,0],"size":[3,3,3],"color":"#ef4444","floor":"5階（6年生）","info":{"title":"対称な図形","lines":["線対称、点対称を学びます。"],"cases":[]},"name":"6年生・対称な図形"}],"paths":[{"from":"1年_10までのかず","to":"1年_なんばんめ","width":2,"color":"#60a5fa"},{"from":"1年_なんばんめ","to":"1年_たしざん1けた","width":2,"color":"#60a5fa"},{"from":"1年_たしざん1けた","to":"1年_ひきざん1けた","width":2,"color":"#60a5fa"},{"from":"1年_ひきざん1けた","to":"1年_おおきさくらべ","width":2,"color":"#60a5fa"},{"from":"1年_おおきさくらべ","to":"1年_かたち","width":2,"color":"#60a5fa"},{"from":"1年_かたち","to":"1年_とけい","width":2,"color":"#60a5fa"},{"from":"2年_100までのかず","to":"2年_たしざん2けた","width":2,"color":"#fcd34d"},{"from":"2年_たしざん2けた","to":"2年_ひきざん2けた","width":2,"color":"#fcd34d"},{"from":"2年_ひきざん2けた","to":"2年_かけざん九九","width":2,"color":"#fcd34d"},{"from":"2年_かけざん九九","to":"2年_ながさ","width":2,"color":"#fcd34d"},{"from":"2年_ながさ","to":"2年_時こくと時間","width":2,"color":"#fcd34d"},{"from":"2年_時こくと時間","to":"2年_三角形と四角形","width":2,"color":"#fcd34d"},{"from":"3年_大きな数","to":"3年_3けたの計算","width":2,"color":"#34d399"},{"from":"3年_3けたの計算","to":"3年_かけざんの筆算","width":2,"color":"#34d399"},{"from":"3年_かけざんの筆算","to":"3年_わり算の基礎","width":2,"color":"#34d399"},{"from":"3年_わり算の基礎","to":"3年_分数の基礎","width":2,"color":"#34d399"},{"from":"3年_分数の基礎","to":"3年_円と球","width":2,"color":"#34d399"},{"from":"3年_円と球","to":"3年_長さと重さ","width":2,"color":"#34d399"},{"from":"4年_億と兆","to":"4年_わり算の筆算","width":2,"color":"#fb923c"},{"from":"4年_わり算の筆算","to":"4年_小数のたしざんひきざん","width":2,"color":"#fb923c"},{"from":"4年_小数のたしざんひきざん","to":"4年_分数の計算","width":2,"color":"#fb923c"},{"from":"4年_分数の計算","to":"4年_面積","width":2,"color":"#fb923c"},{"from":"4年_面積","to":"4年_角度","width":2,"color":"#fb923c"},{"from":"4年_角度","to":"4年_平行と垂直","width":2,"color":"#fb923c"},{"from":"5年_小数のかけざんわり算","to":"5年_分数のたしざんひきざん","width":2,"color":"#c084fc"},{"from":"5年_分数のたしざんひきざん","to":"5年_体積","width":2,"color":"#c084fc"},{"from":"5年_体積","to":"5年_平均","width":2,"color":"#c084fc"},{"from":"5年_平均","to":"5年_割合とパーセント","width":2,"color":"#c084fc"},{"from":"5年_割合とパーセント","to":"5年_比例","width":2,"color":"#c084fc"},{"from":"5年_比例","to":"5年_正多角形","width":2,"color":"#c084fc"},{"from":"6年_分数のかけざんわり算","to":"6年_比と比の値","width":2,"color":"#f87171"},{"from":"6年_比と比の値","to":"6年_拡大図と縮図","width":2,"color":"#f87171"},{"from":"6年_拡大図と縮図","to":"6年_速さ","width":2,"color":"#f87171"},{"from":"6年_速さ","to":"6年_円の面積","width":2,"color":"#f87171"},{"from":"6年_円の面積","to":"6年_立体の体積","width":2,"color":"#f87171"},{"from":"6年_立体の体積","to":"6年_対称な図形","width":2,"color":"#f87171"}],"stairs":[{"from":"1年_とけい","to":"2年_100までのかず","type":"up"},{"from":"2年_三角形と四角形","to":"3年_大きな数","type":"up"},{"from":"3年_長さと重さ","to":"4年_億と兆","type":"up"},{"from":"4年_平行と垂直","to":"5年_小数のかけざんわり算","type":"up"},{"from":"5年_正多角形","to":"6年_分数のかけざんわり算","type":"up"}]};
+
+        // 部屋詳細情報（直接埋め込み）
+        const roomDetails = {"1年_10までのかず":{"title":"10までのかず","grade":"1年生","description":"1から10までの数字を学びます。数える練習と数字の書き方を覚えましょう。","problems":[{"question":"りんごが5こあります。みかんが3こあります。ぜんぶでなんこありますか？","answer":"8こ","hint":"5と3をあわせた数です"},{"question":"えんぴつが7ほんあります。2ほんつかいました。のこりはなんぼんですか？","answer":"5ほん","hint":"7から2をひきます"},{"question":"1から10までかぞえてみましょう。10のつぎのかずはなんですか？","answer":"11","hint":"10の次は..."},{"question":"★が9こあります。○が1こあります。どちらがおおいですか？","answer":"★","hint":"9と1をくらべましょう"}]},"1年_なんばんめ":{"title":"なんばんめ","grade":"1年生","description":"「前から3番目」「右から2番目」などの順序を学びます。","problems":[{"question":"5にんならんでいます。まえから3ばんめはだれですか？","answer":"3番目の人","hint":"前から数えて3人目です"},{"question":"どうぶつが8ひきならんでいます。うしろから2ばんめはまえからなんばんめですか？","answer":"7番目","hint":"8-2+1=7です"},{"question":"10このあめがあります。みぎから4ばんめのあめをたべました。ひだりからなんばんめですか？","answer":"7番目","hint":"10-4+1=7です"}]},"1年_たしざん1けた":{"title":"たしざん（1けた）","grade":"1年生","description":"1+1から9+9までのたしざんを学びます。","problems":[{"question":"2 + 3 = ?","answer":"5","hint":"2から3つぶんすすみます"},{"question":"5 + 4 = ?","answer":"9","hint":"5に4をたします"},{"question":"7 + 3 = ?","answer":"10","hint":"7に3をたすと10になります"},{"question":"8 + 6 = ?","answer":"14","hint":"10をこえる数になります"},{"question":"9 + 9 = ?","answer":"18","hint":"10がいくつあるか考えましょう"}]},"1年_ひきざん1けた":{"title":"ひきざん（1けた）","grade":"1年生","description":"10-1から10-10までのひきざんを学びます。","problems":[{"question":"5 - 2 = ?","answer":"3","hint":"5から2ひきます"},{"question":"8 - 3 = ?","answer":"5","hint":"8から3をとります"},{"question":"10 - 4 = ?","answer":"6","hint":"10から4をひきます"},{"question":"12 - 5 = ?","answer":"7","hint":"12から5をとります"},{"question":"15 - 9 = ?","answer":"6","hint":"10をつかって考えましょう"}]},"1年_おおきさくらべ":{"title":"おおきさくらべ","grade":"1年生","description":"数の大きさ、長さ、重さなどをくらべます。","problems":[{"question":"7と9ではどちらがおおきいですか？","answer":"9","hint":"かずをくらべましょう"},{"question":"3と5ではどちらがちいさいですか？","answer":"3","hint":"ちいさいほうをえらびます"},{"question":"5、8、3のなかでいちばんおおきいかずはどれですか？","answer":"8","hint":"ぜんぶくらべてみましょう"}]},"1年_かたち":{"title":"かたち","grade":"1年生","description":"さんかく、しかく、まるなどのかたちをおぼえます。","problems":[{"question":"かどが3つあるかたちはなんですか？","answer":"さんかく（三角形）","hint":"かどをかぞえましょう"},{"question":"かどが4つあるかたちはなんですか？","answer":"しかく（四角形）","hint":"かどが4つです"},{"question":"かどがないまるいかたちはなんですか？","answer":"まる（円）","hint":"ころころころがります"}]},"1年_とけい":{"title":"とけい","grade":"1年生","description":"なんじ、なんじはんのよみかたをおぼえます。","problems":[{"question":"みじかいはりが3、ながいはりが12をさしています。なんじですか？","answer":"3じ（3時）","hint":"みじかいはりが時間です"},{"question":"みじかいはりが7、ながいはりが6をさしています。なんじですか？","answer":"7じはん（7時半）","hint":"ながいはりが6だとはんです"},{"question":"12じのつぎの1じかんあとはなんじですか？","answer":"1じ（1時）","hint":"12のつぎは1にもどります"}]},"2年_100までのかず":{"title":"100までのかず","grade":"2年生","description":"20、30、40...100までの数え方を学びます。","problems":[{"question":"10が5こあつまるといくつですか？","answer":"50","hint":"10×5です"},{"question":"30のつぎのかずはなんですか？","answer":"31","hint":"30に1たします"},{"question":"100は10がいくつありますか？","answer":"10こ","hint":"10を10こたすと100です"},{"question":"45より10おおきいかずはなんですか？","answer":"55","hint":"45+10です"}]},"2年_たしざん2けた":{"title":"たしざん（2けた）","grade":"2年生","description":"くりあがりのあるたしざんを学びます。","problems":[{"question":"23 + 15 = ?","answer":"38","hint":"20+10=30、3+5=8"},{"question":"47 + 26 = ?","answer":"73","hint":"40+20=60、7+6=13"},{"question":"38 + 54 = ?","answer":"92","hint":"30+50=80、8+4=12"},{"question":"65 + 28 = ?","answer":"93","hint":"くりあがりに注意"}]},"2年_ひきざん2けた":{"title":"ひきざん（2けた）","grade":"2年生","description":"くりさがりのあるひきざんを学びます。","problems":[{"question":"45 - 23 = ?","answer":"22","hint":"40-20=20、5-3=2"},{"question":"73 - 28 = ?","answer":"45","hint":"くりさがりがあります"},{"question":"82 - 47 = ?","answer":"35","hint":"80-40=40、2-7は..."},{"question":"91 - 56 = ?","answer":"35","hint":"ひっさんでかんがえましょう"}]},"2年_かけざん九九":{"title":"かけざん（九九）","grade":"2年生","description":"2の段から9の段までの九九をおぼえます。","problems":[{"question":"3 × 4 = ?","answer":"12","hint":"さざんがじゅうに"},{"question":"7 × 8 = ?","answer":"56","hint":"しちはごじゅうろく"},{"question":"6 × 9 = ?","answer":"54","hint":"ろくくごじゅうし"},{"question":"8 × 7 = ?","answer":"56","hint":"はちしちごじゅうろく"},{"question":"9 × 9 = ?","answer":"81","hint":"くくはちじゅういち"}]},"2年_ながさ":{"title":"ながさ","grade":"2年生","description":"cm、m、mmの使い分けを学びます。","problems":[{"question":"1mは何cmですか？","answer":"100cm","hint":"1m=100cm"},{"question":"1cmは何mmですか？","answer":"10mm","hint":"1cm=10mm"},{"question":"50cmと30cmをあわせると何cmですか？","answer":"80cm","hint":"50+30です"},{"question":"2mは何cmですか？","answer":"200cm","hint":"100×2です"}]},"2年_時こくと時間":{"title":"時こくと時間","grade":"2年生","description":"時こくのよみかた、時間のけいさんを学びます。","problems":[{"question":"3時から1時間たつと何時ですか？","answer":"4時","hint":"3+1です"},{"question":"午前9時から午後1時まで何時間ですか？","answer":"4時間","hint":"9時→12時→13時"},{"question":"1時間は何分ですか？","answer":"60分","hint":"1時間=60分"},{"question":"30分の2つぶんは何分ですか？","answer":"60分（1時間）","hint":"30×2です"}]},"2年_三角形と四角形":{"title":"三角形と四角形","grade":"2年生","description":"へん、ちょう点、かくを学びます。","problems":[{"question":"三角形にはへんがいくつありますか？","answer":"3つ","hint":"三角形は3つのへんです"},{"question":"四角形にはちょう点がいくつありますか？","answer":"4つ","hint":"四角形は4つのちょう点"},{"question":"正方形のへんはすべて同じ長さですか？","answer":"はい","hint":"正方形はすべて同じです"}]},"3年_大きな数":{"title":"大きな数","grade":"3年生","description":"1000、10000などの大きな数を学びます。","problems":[{"question":"100が10こで何ですか？","answer":"1000","hint":"100×10です"},{"question":"1000が10こで何ですか？","answer":"10000（1万）","hint":"1000×10です"},{"question":"5623を千の位で四捨五入すると？","answer":"6000","hint":"623≧500なので切り上げ"},{"question":"10000は1000がいくつありますか？","answer":"10こ","hint":"10000÷1000です"}]},"3年_3けたの計算":{"title":"3けたの計算","grade":"3年生","description":"ひっさんのかきかたを学びます。","problems":[{"question":"456 + 278 = ?","answer":"734","hint":"ひっさんでけいさんしましょう"},{"question":"823 - 365 = ?","answer":"458","hint":"くりさがりに注意"},{"question":"567 + 148 = ?","answer":"715","hint":"くりあがりがあります"},{"question":"900 - 456 = ?","answer":"444","hint":"0からのくりさがり"}]},"3年_かけざんの筆算":{"title":"かけざんの筆算","grade":"3年生","description":"2けた×1けた、2けた×2けたの筆算を学びます。","problems":[{"question":"24 × 3 = ?","answer":"72","hint":"20×3=60、4×3=12"},{"question":"36 × 5 = ?","answer":"180","hint":"30×5=150、6×5=30"},{"question":"23 × 12 = ?","answer":"276","hint":"23×2と23×10をたします"},{"question":"47 × 25 = ?","answer":"1175","hint":"ひっさんでけいさん"}]},"3年_わり算の基礎":{"title":"わり算の基礎","grade":"3年生","description":"わり算のいみ、あまりを学びます。","problems":[{"question":"12 ÷ 3 = ?","answer":"4","hint":"12を3つにわけます"},{"question":"20 ÷ 4 = ?","answer":"5","hint":"20を4つにわけます"},{"question":"15 ÷ 4 = ? あまり ?","answer":"3 あまり 3","hint":"4×3=12、15-12=3"},{"question":"23 ÷ 5 = ? あまり ?","answer":"4 あまり 3","hint":"5×4=20、23-20=3"}]},"3年_分数の基礎":{"title":"分数の基礎","grade":"3年生","description":"1/2、1/3、1/4などの分数を学びます。","problems":[{"question":"ピザを2人でわけると1人分は？","answer":"1/2（2分の1）","hint":"半分です"},{"question":"1/2と1/4ではどちらが大きいですか？","answer":"1/2","hint":"2でわるより4でわるほうが小さい"},{"question":"1/3が3こあつまるといくつですか？","answer":"1","hint":"1/3×3=1"},{"question":"2/4と1/2は同じですか？","answer":"はい（同じ）","hint":"2/4=1/2です"}]},"3年_円と球":{"title":"円と球","grade":"3年生","description":"コンパスのつかいかた、半径を学びます。","problems":[{"question":"円の中心から円周までの長さを何といいますか？","answer":"半径","hint":"はんけいです"},{"question":"半径が5cmの円の直径は何cmですか？","answer":"10cm","hint":"直径=半径×2"},{"question":"直径が12cmの円の半径は何cmですか？","answer":"6cm","hint":"半径=直径÷2"},{"question":"コンパスで半径3cmの円をかくとき、コンパスは何cmひらきますか？","answer":"3cm","hint":"半径の長さです"}]},"3年_長さと重さ":{"title":"長さと重さ","grade":"3年生","description":"km、t、gの単位を学びます。","problems":[{"question":"1kmは何mですか？","answer":"1000m","hint":"1km=1000m"},{"question":"1kgは何gですか？","answer":"1000g","hint":"1kg=1000g"},{"question":"1tは何kgですか？","answer":"1000kg","hint":"1t=1000kg"},{"question":"3km500mは何mですか？","answer":"3500m","hint":"3000+500です"}]},"4年_億と兆":{"title":"大きな数（億・兆）","grade":"4年生","description":"億、兆の単位を学びます。","problems":[{"question":"1億は何万ですか？","answer":"10000万（1万万）","hint":"1億=10000×10000"},{"question":"1兆は1億がいくつですか？","answer":"10000こ","hint":"1兆=1億×10000"},{"question":"3億5000万を数字で書くと？","answer":"350000000","hint":"3億+5000万"},{"question":"12億は何万ですか？","answer":"120000万","hint":"1億=10000万"}]},"4年_わり算の筆算":{"title":"わり算の筆算","grade":"4年生","description":"2けた÷1けた、3けた÷2けたの筆算を学びます。","problems":[{"question":"72 ÷ 3 = ?","answer":"24","hint":"7÷3=2あまり1、12÷3=4"},{"question":"156 ÷ 4 = ?","answer":"39","hint":"ひっさんでけいさん"},{"question":"208 ÷ 13 = ?","answer":"16","hint":"13×16=208"},{"question":"345 ÷ 15 = ?","answer":"23","hint":"15×23=345"}]},"4年_小数のたしざんひきざん":{"title":"小数のたしざん・ひきざん","grade":"4年生","description":"0.1、0.01の小数の計算を学びます。","problems":[{"question":"2.3 + 1.5 = ?","answer":"3.8","hint":"しょう数点をそろえます"},{"question":"4.7 - 2.3 = ?","answer":"2.4","hint":"4.7から2.3をひきます"},{"question":"3.25 + 1.48 = ?","answer":"4.73","hint":"しょう数第2位まで計算"},{"question":"5.6 - 2.78 = ?","answer":"2.82","hint":"5.60と考えます"}]},"4年_分数の計算":{"title":"分数の計算","grade":"4年生","description":"同じ分母のたしざん・ひきざんを学びます。","problems":[{"question":"1/5 + 2/5 = ?","answer":"3/5","hint":"分母は同じ、分子をたします"},{"question":"4/7 - 1/7 = ?","answer":"3/7","hint":"分母は同じ、分子をひきます"},{"question":"3/8 + 3/8 = ?","answer":"6/8 = 3/4","hint":"やくぶんできます"},{"question":"5/6 - 2/6 = ?","answer":"3/6 = 1/2","hint":"やくぶんしましょう"}]},"4年_面積":{"title":"面積","grade":"4年生","description":"長方形、正方形の面積（cm²、m²）を学びます。","problems":[{"question":"たて5cm、よこ8cmの長方形の面積は？","answer":"40cm²","hint":"5×8です"},{"question":"1へんが7cmの正方形の面積は？","answer":"49cm²","hint":"7×7です"},{"question":"1m²は何cm²ですか？","answer":"10000cm²","hint":"100×100です"},{"question":"たて3m、よこ4mの長方形の面積は？","answer":"12m²","hint":"3×4です"}]},"4年_角度":{"title":"角度","grade":"4年生","description":"角度のはかりかた、直角、えい角、どん角を学びます。","problems":[{"question":"直角は何度ですか？","answer":"90度","hint":"ちょっかくは90度"},{"question":"90度より小さい角を何といいますか？","answer":"えい角（鋭角）","hint":"するどい角"},{"question":"90度より大きく180度より小さい角を何といいますか？","answer":"どん角（鈍角）","hint":"にぶい角"},{"question":"三角形の3つの角をたすと何度ですか？","answer":"180度","hint":"三角形の内角の和"}]},"4年_平行と垂直":{"title":"平行と垂直","grade":"4年生","description":"平行線、すい線のひきかたを学びます。","problems":[{"question":"平行な2本の直線は交わりますか？","answer":"交わりません","hint":"へいこうは交わらない"},{"question":"すい直に交わる2本の直線の角度は？","answer":"90度","hint":"すい直は直角"},{"question":"長方形の向かい合う辺は平行ですか？","answer":"はい（平行）","hint":"長方形の性質"},{"question":"平行四辺形の向かい合う辺は平行ですか？","answer":"はい（平行）","hint":"へいこう四辺形の性質"}]},"5年_小数のかけざんわり算":{"title":"小数のかけ算・わり算","grade":"5年生","description":"小数のかけ算・わり算の筆算を学びます。","problems":[{"question":"2.5 × 4 = ?","answer":"10","hint":"2.5を4倍します"},{"question":"3.6 × 2.5 = ?","answer":"9","hint":"36×25÷100です"},{"question":"7.2 ÷ 3 = ?","answer":"2.4","hint":"72÷30と同じ"},{"question":"6.3 ÷ 0.7 = ?","answer":"9","hint":"63÷7と同じ"}]},"5年_分数のたしざんひきざん":{"title":"分数のたしざん・ひきざん","grade":"5年生","description":"つう分、やく分を学びます。","problems":[{"question":"1/2 + 1/3 = ?","answer":"5/6","hint":"つう分して3/6+2/6"},{"question":"3/4 - 1/6 = ?","answer":"7/12","hint":"つう分して9/12-2/12"},{"question":"2/3 + 1/4 = ?","answer":"11/12","hint":"つう分して8/12+3/12"},{"question":"5/6 - 2/9 = ?","answer":"11/18","hint":"つう分して15/18-4/18"}]},"5年_体積":{"title":"体積","grade":"5年生","description":"立方体、直方体（cm³、m³）の体積を学びます。","problems":[{"question":"たて3cm、よこ4cm、高さ5cmの直方体の体積は？","answer":"60cm³","hint":"3×4×5です"},{"question":"1辺が6cmの立方体の体積は？","answer":"216cm³","hint":"6×6×6です"},{"question":"1m³は何cm³ですか？","answer":"1000000cm³","hint":"100×100×100です"},{"question":"1Lは何cm³ですか？","answer":"1000cm³","hint":"1L=1000cm³"}]},"5年_平均":{"title":"平均","grade":"5年生","description":"平均のもとめかたを学びます。","problems":[{"question":"5、7、9の平均は？","answer":"7","hint":"(5+7+9)÷3です"},{"question":"80、90、70、100の平均は？","answer":"85","hint":"(80+90+70+100)÷4"},{"question":"平均が50で5人の合計点は？","answer":"250点","hint":"50×5です"},{"question":"合計300、人数5人の平均は？","answer":"60","hint":"300÷5です"}]},"5年_割合とパーセント":{"title":"割合とパーセント","grade":"5年生","description":"％、ぶ合を学びます。","problems":[{"question":"50%は小数で表すと？","answer":"0.5","hint":"50÷100です"},{"question":"200の30%は？","answer":"60","hint":"200×0.3です"},{"question":"80は200の何%ですか？","answer":"40%","hint":"80÷200×100"},{"question":"5割は何%ですか？","answer":"50%","hint":"5割=50%"}]},"5年_比例":{"title":"比例","grade":"5年生","description":"比例のグラフを学びます。","problems":[{"question":"yはxの2倍です。x=3のときyは？","answer":"6","hint":"y=2×x"},{"question":"yはxに比例し、x=4のときy=12です。x=5のときyは？","answer":"15","hint":"y=3×x"},{"question":"1個100円のりんご。5個買うと？","answer":"500円","hint":"100×5です"},{"question":"比例のグラフは何線ですか？","answer":"直線","hint":"原点を通る直線"}]},"5年_正多角形":{"title":"正多角形","grade":"5年生","description":"正三角形、正方形、正五角形などを学びます。","problems":[{"question":"正三角形の1つの角は何度ですか？","answer":"60度","hint":"180÷3です"},{"question":"正方形の1つの角は何度ですか？","answer":"90度","hint":"360÷4です"},{"question":"正五角形の1つの角は何度ですか？","answer":"108度","hint":"180×(5-2)÷5"},{"question":"正六角形の1つの角は何度ですか？","answer":"120度","hint":"180×(6-2)÷6"}]},"6年_分数のかけざんわり算":{"title":"分数のかけ算・わり算","grade":"6年生","description":"ぎゃく数、たい分数を学びます。","problems":[{"question":"2/3 × 3/4 = ?","answer":"6/12 = 1/2","hint":"分子どうし、分母どうしをかけます"},{"question":"3/5 ÷ 2/3 = ?","answer":"9/10","hint":"ぎゃく数をかけます"},{"question":"2と1/2 × 4 = ?","answer":"10","hint":"5/2×4です"},{"question":"4 ÷ 2/3 = ?","answer":"6","hint":"4×3/2です"}]},"6年_比と比の値":{"title":"比と比の値","grade":"6年生","description":"比のかん単化を学びます。","problems":[{"question":"4:6を最も簡単な整数の比にすると？","answer":"2:3","hint":"両方を2でわります"},{"question":"12:18を最も簡単な整数の比にすると？","answer":"2:3","hint":"両方を6でわります"},{"question":"3:5の比の値は？","answer":"0.6（3/5）","hint":"3÷5です"},{"question":"比が2:3で合計が50のとき、小さいほうは？","answer":"20","hint":"50×2÷(2+3)"}]},"6年_拡大図と縮図":{"title":"拡大図と縮図","grade":"6年生","description":"しゅく尺を学びます。","problems":[{"question":"縮尺1/100の地図で2cmは実際に何mですか？","answer":"2m（200cm）","hint":"2×100=200cm"},{"question":"実際の長さ5mを縮尺1/50で書くと何cmですか？","answer":"10cm","hint":"500÷50です"},{"question":"2倍の拡大図で3cmは実際に何cmですか？","answer":"1.5cm","hint":"3÷2です"},{"question":"縮尺1/1000の地図で1cmは実際に何mですか？","answer":"10m","hint":"1000cm=10m"}]},"6年_速さ":{"title":"速さ","grade":"6年生","description":"速さ・道のり・時間のかん係を学びます。","problems":[{"question":"時速60kmで2時間走ると何km進みますか？","answer":"120km","hint":"道のり=速さ×時間"},{"question":"120kmを3時間で走る速さは時速何kmですか？","answer":"時速40km","hint":"速さ=道のり÷時間"},{"question":"時速50kmで100km進むのに何時間かかりますか？","answer":"2時間","hint":"時間=道のり÷速さ"},{"question":"分速80mは時速何kmですか？","answer":"時速4.8km","hint":"80×60=4800m=4.8km"}]},"6年_円の面積":{"title":"円の面積","grade":"6年生","description":"πのつかいかたを学びます。","problems":[{"question":"半径5cmの円の面積は？（円周率3.14）","answer":"78.5cm²","hint":"5×5×3.14です"},{"question":"直径10cmの円の面積は？（円周率3.14）","answer":"78.5cm²","hint":"半径は5cm"},{"question":"半径3cmの円の円周は？（円周率3.14）","answer":"18.84cm","hint":"3×2×3.14です"},{"question":"円周率πは約何ですか？","answer":"約3.14","hint":"3.14159..."}]},"6年_立体の体積":{"title":"立体の体積","grade":"6年生","description":"円柱、角柱の体積を学びます。","problems":[{"question":"底面積20cm²、高さ10cmの角柱の体積は？","answer":"200cm³","hint":"底面積×高さ"},{"question":"底面の半径5cm、高さ10cmの円柱の体積は？（円周率3.14）","answer":"785cm³","hint":"5×5×3.14×10"},{"question":"底面が1辺4cmの正方形、高さ8cmの角柱の体積は？","answer":"128cm³","hint":"4×4×8"},{"question":"円柱の体積の公式は？","answer":"底面積×高さ","hint":"角柱と同じです"}]},"6年_対称な図形":{"title":"対称な図形","grade":"6年生","description":"線対称、点対称を学びます。","problems":[{"question":"正方形は線対称ですか？","answer":"はい（線対称）","hint":"対称の軸が4本あります"},{"question":"正方形は点対称ですか？","answer":"はい（点対称）","hint":"中心で180度回転"},{"question":"二等辺三角形は線対称ですか？","answer":"はい（線対称）","hint":"頂点から底辺への軸"},{"question":"ひし形は点対称ですか？","answer":"はい（点対称）","hint":"中心で回転"}]}};
+        console.log('部屋詳細情報を読み込みました');
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.7, 2);
+        camera.rotation.order = 'YXZ';
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;  // 影を有効化
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // ソフトシャドウ
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // バランスの良いライティング
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        sunLight.position.set(10, 20, 10);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 500;
+        scene.add(sunLight);
+
+        // 補助光源（控えめ）
+        const fillLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
+        fillLight1.position.set(-10, 10, -10);
+        scene.add(fillLight1);
+
+        const fillLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight2.position.set(0, -10, 0);
+        scene.add(fillLight2);
+
+        const roomMap = {};
+        const papers = [];
+        const stairs = [];
+        const pathConnections = new Set();
+        const roomObjects = {}; // 部屋のThree.jsオブジェクトを保存
+
+        // チェック状態管理
+        function loadCheckedRooms() {
+            const stored = localStorage.getItem('checkedRooms');
+            return stored ? JSON.parse(stored) : {};
+        }
+
+        function saveCheckedRooms(checkedRooms) {
+            localStorage.setItem('checkedRooms', JSON.stringify(checkedRooms));
+        }
+
+        let checkedRooms = loadCheckedRooms();
+
+        function setRoomOpacity(roomId, opacity) {
+            const roomObj = roomObjects[roomId];
+            if (!roomObj) return;
+
+            // 壁の透明度を変更
+            roomObj.group.children.forEach(child => {
+                if (child.material) {
+                    child.material.transparent = true;
+                    child.material.opacity = opacity;
+                }
+            });
+
+            // 紙の透明度を変更
+            const paper = papers.find(p => p.roomId === roomId);
+            if (paper && paper.mesh.material) {
+                paper.mesh.material.transparent = true;
+                paper.mesh.material.opacity = opacity;
+            }
+        }
+
+        palaceData.paths.forEach(p => {
+            pathConnections.add(`${p.from}-${p.to}`);
+            pathConnections.add(`${p.to}-${p.from}`);
+        });
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16) / 255, g: parseInt(result[2], 16) / 255, b: parseInt(result[3], 16) / 255 } : { r: 1, g: 1, b: 1 };
+        }
+
+        function hasConnection(roomId, direction) {
+            let found = false;
+            for (const path of palaceData.paths) {
+                if (path.from === roomId || path.to === roomId) {
+                    const otherId = path.from === roomId ? path.to : path.from;
+                    const otherRoom = roomMap[otherId];
+                    const thisRoom = roomMap[roomId];
+                    if (!otherRoom || !thisRoom) continue;
+
+                    const dx = otherRoom.position[0] - thisRoom.position[0];
+                    const dz = otherRoom.position[2] - thisRoom.position[2];
+
+                    // 主要な方向を決定
+                    const absDx = Math.abs(dx);
+                    const absDz = Math.abs(dz);
+
+                    // 両方向の差分の比率を計算
+                    const ratio = absDx > absDz ? absDx / (absDz + 0.001) : absDz / (absDx + 0.001);
+
+                    // 比率が1.5未満（対角線的）の場合、両方の方向を考慮
+                    if (ratio < 1.5 && absDx > 0.1 && absDz > 0.1) {
+                        const xDir = dx > 0 ? 'right' : 'left';
+                        const zDir = dz > 0 ? 'front' : 'back';
+
+                        if (direction === xDir || direction === zDir) {
+                            console.log(`${roomId}: ${direction}接続検出（対角） → ${otherId} (dx=${dx.toFixed(2)}, dz=${dz.toFixed(2)}, ratio=${ratio.toFixed(2)})`);
+                            found = true;
+                        }
+                    } else {
+                        // 一方向が明確に大きい場合、主要な方向のみ
+                        let dominantDirection = '';
+                        if (absDz > absDx) {
+                            dominantDirection = dz > 0 ? 'front' : 'back';
+                        } else if (absDx > absDz) {
+                            dominantDirection = dx > 0 ? 'right' : 'left';
+                        }
+
+                        if (direction === dominantDirection) {
+                            console.log(`${roomId}: ${direction}接続検出 → ${otherId} (dx=${dx.toFixed(2)}, dz=${dz.toFixed(2)})`);
+                            found = true;
+                        }
+                    }
+                }
+            }
+            return found;
+        }
+
+        function createRoom(roomData) {
+            const group = new THREE.Group();
+            const rgb = hexToRgb(roomData.color);
+            const color = new THREE.Color(rgb.r * 0.5, rgb.g * 0.5, rgb.b * 0.5);
+
+            const [x, y, z] = roomData.position;
+            const [w, h, d] = roomData.size;
+
+            group.position.set(x, y + h/2, z);
+            // roomMapは第1パスで登録済み
+
+            // 球形の部屋の場合
+            if (roomData.shape === 'sphere') {
+                const radius = Math.max(w, h, d) / 2;
+
+                // 高品質なPBRマテリアル
+                const sphereMat = new THREE.MeshStandardMaterial({
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.5,  // より明るく
+                    metalness: 0.5,
+                    roughness: 0.3,
+                    transparent: true,
+                    opacity: 0.7,
+                    side: THREE.DoubleSide
+                });
+
+                // より滑らかな球体（64分割）
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), sphereMat);
+                sphere.castShadow = true;
+                sphere.receiveShadow = true;
+                group.add(sphere);
+
+                // 球形の部屋用の床（より滑らか）
+                const floorMat = new THREE.MeshStandardMaterial({
+                    color: 0x555555,
+                    metalness: 0.3,
+                    roughness: 0.7
+                });
+                const floor = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.8, 64), floorMat);
+                floor.castShadow = false;
+                floor.receiveShadow = true;
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = -radius;
+                group.add(floor);
+
+                // 部屋番号を床に表示
+                const roomNumber = palaceData.rooms.findIndex(r => r.id === roomData.id) + 1;
+                const numberCanvas = document.createElement('canvas');
+                numberCanvas.width = 256; numberCanvas.height = 256;
+                const numberCtx = numberCanvas.getContext('2d');
+                numberCtx.fillStyle = '#ffffff';
+                numberCtx.fillRect(0, 0, 256, 256);
+                numberCtx.fillStyle = '#000000';
+                numberCtx.font = 'bold 120px sans-serif';
+                numberCtx.textAlign = 'center';
+                numberCtx.textBaseline = 'middle';
+                numberCtx.fillText(roomNumber.toString(), 128, 128);
+                const numberTexture = new THREE.CanvasTexture(numberCanvas);
+                const numberMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.8, 0.8),
+                    new THREE.MeshBasicMaterial({ map: numberTexture, transparent: true })
+                );
+                numberMesh.rotation.x = -Math.PI / 2;
+                numberMesh.position.y = -radius + 0.01;
+                group.add(numberMesh);
+
+                const paper = createPaper(roomData.info);
+                paper.position.set(0, 0, 0);
+                group.add(paper);
+                papers.push({ mesh: paper, data: roomData.info, roomId: roomData.id });
+
+                scene.add(group);
+                roomObjects[roomData.id] = { group: group, data: roomData };
+                if (checkedRooms[roomData.id]) {
+                    setRoomOpacity(roomData.id, 0.3);
+                }
+                return;
+            }
+
+            const wallMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d), new THREE.MeshStandardMaterial({ color: 0x555555 }));
+            floor.position.y = -h/2;
+            group.add(floor);
+
+            // 部屋番号を床に表示
+            const roomNumber = palaceData.rooms.findIndex(r => r.id === roomData.id) + 1;
+            const numberCanvas = document.createElement('canvas');
+            numberCanvas.width = 256; numberCanvas.height = 256;
+            const numberCtx = numberCanvas.getContext('2d');
+            numberCtx.fillStyle = '#ffffff';
+            numberCtx.fillRect(0, 0, 256, 256);
+            numberCtx.fillStyle = '#000000';
+            numberCtx.font = 'bold 120px sans-serif';
+            numberCtx.textAlign = 'center';
+            numberCtx.textBaseline = 'middle';
+            numberCtx.fillText(roomNumber.toString(), 128, 128);
+            const numberTexture = new THREE.CanvasTexture(numberCanvas);
+            const numberMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.8, 0.8),
+                new THREE.MeshBasicMaterial({ map: numberTexture, transparent: true })
+            );
+            numberMesh.rotation.x = -Math.PI / 2;
+            numberMesh.position.y = -h/2 + 0.01;
+            group.add(numberMesh);
+
+            const wallThick = 0.1;
+            const doorWidth = 1.2;
+
+            // ドア枠用のマテリアル（金色）
+            const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: 0.5 });
+
+            // 前壁（開口部対応）
+            if (!hasConnection(roomData.id, 'front')) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, wallThick), wallMat);
+                wall.position.set(0, 0, d/2);
+                group.add(wall);
+            } else {
+                const leftPart = new THREE.Mesh(new THREE.BoxGeometry((w - doorWidth) / 2, h, wallThick), wallMat);
+                leftPart.position.set(-w/2 + (w - doorWidth) / 4, 0, d/2);
+                group.add(leftPart);
+                const rightPart = new THREE.Mesh(new THREE.BoxGeometry((w - doorWidth) / 2, h, wallThick), wallMat);
+                rightPart.position.set(w/2 - (w - doorWidth) / 4, 0, d/2);
+                group.add(rightPart);
+
+                // ドア枠を追加（左右と上部）
+                const frameThick = 0.08;
+                const leftFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                leftFrame.position.set(-doorWidth/2, 0, d/2);
+                group.add(leftFrame);
+                const rightFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                rightFrame.position.set(doorWidth/2, 0, d/2);
+                group.add(rightFrame);
+                const topFrame = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, frameThick, frameThick), doorFrameMat);
+                topFrame.position.set(0, h/2, d/2);
+                group.add(topFrame);
+            }
+
+            // 後壁
+            if (!hasConnection(roomData.id, 'back')) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, wallThick), wallMat);
+                wall.position.set(0, 0, -d/2);
+                group.add(wall);
+            } else {
+                const leftPart = new THREE.Mesh(new THREE.BoxGeometry((w - doorWidth) / 2, h, wallThick), wallMat);
+                leftPart.position.set(-w/2 + (w - doorWidth) / 4, 0, -d/2);
+                group.add(leftPart);
+                const rightPart = new THREE.Mesh(new THREE.BoxGeometry((w - doorWidth) / 2, h, wallThick), wallMat);
+                rightPart.position.set(w/2 - (w - doorWidth) / 4, 0, -d/2);
+                group.add(rightPart);
+
+                // ドア枠を追加（左右と上部）
+                const frameThick = 0.08;
+                const leftFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                leftFrame.position.set(-doorWidth/2, 0, -d/2);
+                group.add(leftFrame);
+                const rightFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                rightFrame.position.set(doorWidth/2, 0, -d/2);
+                group.add(rightFrame);
+                const topFrame = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, frameThick, frameThick), doorFrameMat);
+                topFrame.position.set(0, h/2, -d/2);
+                group.add(topFrame);
+            }
+
+            // 左壁
+            if (!hasConnection(roomData.id, 'left')) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, d), wallMat);
+                wall.position.set(-w/2, 0, 0);
+                group.add(wall);
+            } else {
+                const frontPart = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, (d - doorWidth) / 2), wallMat);
+                frontPart.position.set(-w/2, 0, d/2 - (d - doorWidth) / 4);
+                group.add(frontPart);
+                const backPart = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, (d - doorWidth) / 2), wallMat);
+                backPart.position.set(-w/2, 0, -d/2 + (d - doorWidth) / 4);
+                group.add(backPart);
+
+                // ドア枠を追加（前後と上部）
+                const frameThick = 0.08;
+                const frontFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                frontFrame.position.set(-w/2, 0, doorWidth/2);
+                group.add(frontFrame);
+                const backFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                backFrame.position.set(-w/2, 0, -doorWidth/2);
+                group.add(backFrame);
+                const topFrame2 = new THREE.Mesh(new THREE.BoxGeometry(frameThick, frameThick, doorWidth), doorFrameMat);
+                topFrame2.position.set(-w/2, h/2, 0);
+                group.add(topFrame2);
+            }
+
+            // 右壁
+            if (!hasConnection(roomData.id, 'right')) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, d), wallMat);
+                wall.position.set(w/2, 0, 0);
+                group.add(wall);
+            } else {
+                const frontPart = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, (d - doorWidth) / 2), wallMat);
+                frontPart.position.set(w/2, 0, d/2 - (d - doorWidth) / 4);
+                group.add(frontPart);
+                const backPart = new THREE.Mesh(new THREE.BoxGeometry(wallThick, h, (d - doorWidth) / 2), wallMat);
+                backPart.position.set(w/2, 0, -d/2 + (d - doorWidth) / 4);
+                group.add(backPart);
+
+                // ドア枠を追加（前後と上部）
+                const frameThick = 0.08;
+                const frontFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                frontFrame.position.set(w/2, 0, doorWidth/2);
+                group.add(frontFrame);
+                const backFrame = new THREE.Mesh(new THREE.BoxGeometry(frameThick, h, frameThick), doorFrameMat);
+                backFrame.position.set(w/2, 0, -doorWidth/2);
+                group.add(backFrame);
+                const topFrame3 = new THREE.Mesh(new THREE.BoxGeometry(frameThick, frameThick, doorWidth), doorFrameMat);
+                topFrame3.position.set(w/2, h/2, 0);
+                group.add(topFrame3);
+            }
+
+            const paper = createPaper(roomData.info);
+            paper.position.set(0, h/4, -d/2 + 0.2);
+            group.add(paper);
+            papers.push({ mesh: paper, data: roomData.info, roomId: roomData.id });
+
+            scene.add(group);
+
+            // 部屋オブジェクトを保存
+            roomObjects[roomData.id] = { group: group, data: roomData };
+
+            // チェック状態を適用
+            if (checkedRooms[roomData.id]) {
+                setRoomOpacity(roomData.id, 0.3);
+            }
+
+            // 部屋内にオブジェクトを配置（roomData.objectsが定義されている場合）
+            if (roomData.objects && Array.isArray(roomData.objects)) {
+                roomData.objects.forEach(obj => {
+                    let objMesh;
+                    const objColor = new THREE.Color(obj.color || '#ffffff');
+
+                    // PBRマテリアル（物理ベースレンダリング）
+                    const objMat = new THREE.MeshStandardMaterial({
+                        color: objColor,
+                        emissive: objColor,
+                        emissiveIntensity: obj.emissive || 0.5,  // より明るく
+                        metalness: 0.9,        // 金属的な質感
+                        roughness: 0.2         // 滑らかな表面
+                    });
+
+                    // より高いsegments（分割数）で滑らかなジオメトリ
+                    switch (obj.shape) {
+                        case 'box':
+                            objMesh = new THREE.Mesh(
+                                new THREE.BoxGeometry(obj.size[0], obj.size[1], obj.size[2], 16, 16, 16),
+                                objMat
+                            );
+                            break;
+                        case 'sphere':
+                            objMesh = new THREE.Mesh(
+                                new THREE.SphereGeometry(obj.size[0], 64, 64),
+                                objMat
+                            );
+                            break;
+                        case 'cylinder':
+                            objMesh = new THREE.Mesh(
+                                new THREE.CylinderGeometry(obj.size[0], obj.size[0], obj.size[1], 64),
+                                objMat
+                            );
+                            break;
+                        default:
+                            objMesh = new THREE.Mesh(
+                                new THREE.BoxGeometry(0.5, 0.5, 0.5, 16, 16, 16),
+                                objMat
+                            );
+                    }
+
+                    // 影の投射と受け取りを有効化
+                    objMesh.castShadow = true;
+                    objMesh.receiveShadow = true;
+
+                    objMesh.position.set(obj.position[0], obj.position[1], obj.position[2]);
+                    if (obj.rotation) {
+                        objMesh.rotation.set(obj.rotation[0], obj.rotation[1], obj.rotation[2]);
+                    }
+                    group.add(objMesh);
+
+                    // ラベルを追加（labelプロパティがある場合）
+                    if (obj.label) {
+                        const labelSprite = createObjectLabel(obj.label);
+                        // ラベルをオブジェクトの上に配置
+                        let labelOffset = 0.3;
+                        if (obj.shape === 'cylinder') {
+                            labelOffset = obj.size[1] / 2 + 0.2;
+                        } else if (obj.shape === 'sphere') {
+                            labelOffset = obj.size[0] + 0.15;
+                        } else if (obj.shape === 'box') {
+                            labelOffset = obj.size[1] / 2 + 0.15;
+                        }
+                        labelSprite.position.set(
+                            obj.position[0],
+                            obj.position[1] + labelOffset,
+                            obj.position[2]
+                        );
+                        group.add(labelSprite);
+                    }
+                });
+            }
+        }
+
+        function createObjectLabel(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            // 背景（半透明）
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, 0, 256, 64);
+
+            // テキスト
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 32);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(0.5, 0.125, 1);
+            return sprite;
+        }
+
+        function createPaper(info) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fffef7'; ctx.fillRect(0, 0, 512, 512);
+            ctx.fillStyle = '#333'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(info.title, 256, 80);
+            ctx.font = '24px sans-serif';
+            info.lines.forEach((line, i) => { ctx.fillText(line, 256, 150 + i * 40); });
+            if (info.cases && info.cases.length > 0) {
+                ctx.fillStyle = '#f59e0b'; ctx.font = '20px sans-serif'; ctx.fillText('【判例】', 256, 350);
+                ctx.fillStyle = '#333'; ctx.font = '18px sans-serif';
+                info.cases.forEach((c, i) => { ctx.fillText(c, 256, 385 + i * 30); });
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            return new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+        }
+
+        function createPath(pathData) {
+            const from = roomMap[pathData.from];
+            const to = roomMap[pathData.to];
+            if (!from || !to) return;
+
+            const [x1, y1, z1] = from.position;
+            const [x2, y2, z2] = to.position;
+
+            const midX = (x1 + x2) / 2;
+            const midY = Math.max(y1, y2);
+            const midZ = (z1 + z2) / 2;
+
+            const length = Math.sqrt((x2-x1)**2 + (z2-z1)**2);
+            // 角度を修正：Z軸方向が前方、X軸方向が右
+            const angle = Math.atan2(x2-x1, z2-z1);
+
+            const rgb = hexToRgb(pathData.color);
+            const color = new THREE.Color(rgb.r * 0.7, rgb.g * 0.7, rgb.b * 0.7);
+
+            // BoxGeometryの向き: widthをX軸、depthをZ軸に配置し、Y軸周りに回転
+            const path = new THREE.Mesh(
+                new THREE.BoxGeometry(pathData.width, 0.1, length),
+                new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.2 })
+            );
+            path.position.set(midX, midY - 0.05, midZ);
+            path.rotation.y = angle;
+            scene.add(path);
+
+            console.log(`道作成: ${pathData.from} → ${pathData.to}, 角度=${(angle * 180 / Math.PI).toFixed(1)}°`);
+        }
+
+        function createStair(stairData) {
+            const fromRoom = roomMap[stairData.from];
+            const toRoom = roomMap[stairData.to];
+            if (!fromRoom || !toRoom) {
+                console.warn(`階段作成失敗: ${stairData.from} → ${stairData.to}`);
+                return;
+            }
+
+            // 下の階の部屋に「上がる階段」を配置
+            const [x1, y1, z1] = fromRoom.position;
+            const stairUpMesh = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.5, 2, 8),
+                new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: 0.5 })
+            );
+            stairUpMesh.position.set(x1, y1 + 1, z1);
+            scene.add(stairUpMesh);
+            stairs.push({ mesh: stairUpMesh, data: stairData, direction: 'up' });
+            console.log(`上がる階段作成: ${stairData.from} (${x1}, ${y1}, ${z1}) → ${stairData.to}`);
+
+            // 上の階の部屋に「降りる階段」を配置
+            const [x2, y2, z2] = toRoom.position;
+            const stairDownMesh = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.5, 2, 8),
+                new THREE.MeshStandardMaterial({ color: 0x9ca3af, emissive: 0x9ca3af, emissiveIntensity: 0.5 })
+            );
+            stairDownMesh.position.set(x2, y2 + 1, z2);
+            scene.add(stairDownMesh);
+            stairs.push({ mesh: stairDownMesh, data: stairData, direction: 'down' });
+            console.log(`降りる階段作成: ${stairData.to} (${x2}, ${y2}, ${z2}) → ${stairData.from}`);
+        }
+
+        // 第1パス：すべての部屋をroomMapに登録（壁を作る前に）
+        palaceData.rooms.forEach(room => {
+            const [x, y, z] = room.position;
+            const [w, h, d] = room.size;
+            roomMap[room.id] = { position: [x, y, z], size: [w, h, d], data: room };
+        });
+        console.log('roomMap登録完了:', Object.keys(roomMap).length, '部屋');
+
+        // 第2パス：壁を含む3Dオブジェクトを作成
+        palaceData.rooms.forEach(createRoom);
+        palaceData.paths.forEach(createPath);
+        palaceData.stairs.forEach(createStair);
+
+        // ミニマップ
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        minimapCanvas.width = 250;
+        minimapCanvas.height = 250;
+        let minimapScale = 6;
+        const minimapOffsetX = 125;
+        const minimapOffsetY = 125;
+
+        // ミニマップのズーム機能
+        function zoomMinimap(factor) {
+            minimapScale *= factor;
+            minimapScale = Math.max(3, Math.min(15, minimapScale)); // 3〜15の範囲
+        }
+
+        function resetMinimapZoom() {
+            minimapScale = 6;
+        }
+
+        // ミニマップのダブルクリックで部屋に移動
+        minimapCanvas.addEventListener('dblclick', (e) => {
+            const rect = minimapCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // クリック座標をワールド座標に変換
+            const worldX = (clickX - minimapOffsetX) / minimapScale;
+            const worldZ = (clickY - minimapOffsetY) / minimapScale;
+
+            const currentFloor = camera.position.y > 16 ? 'floor5' : camera.position.y > 12 ? 'floor4' : camera.position.y > 8 ? 'floor3' : camera.position.y > 4 ? 'floor2' : camera.position.y > 0 ? 'floor1' : 'basement';
+
+            // 最も近い部屋を検索
+            let nearestRoom = null;
+            let minDist = Infinity;
+            palaceData.rooms.forEach(room => {
+                if (room.floor !== currentFloor) return;
+                const [rx, ry, rz] = room.position;
+                const dist = Math.sqrt((worldX - rx)**2 + (worldZ - rz)**2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestRoom = room;
+                }
+            });
+
+            if (nearestRoom && minDist < 5) {
+                const [x, y, z] = nearestRoom.position;
+                camera.position.set(x, y + 1.7, z);
+                console.log(`ミニマップから ${nearestRoom.name} に移動しました`);
+            }
+        });
+
+        function drawMinimap() {
+            minimapCtx.fillStyle = '#000';
+            minimapCtx.fillRect(0, 0, 250, 250);
+
+            const currentFloor = camera.position.y > 16 ? 'floor5' : camera.position.y > 12 ? 'floor4' : camera.position.y > 8 ? 'floor3' : camera.position.y > 4 ? 'floor2' : camera.position.y > 0 ? 'floor1' : 'basement';
+
+            palaceData.rooms.forEach((room, index) => {
+                if (room.floor !== currentFloor) return;
+                const [x, y, z] = room.position;
+                const [w, h, d] = room.size;
+
+                // 部屋の色（チェック済みなら薄く）
+                const isChecked = checkedRooms[room.id];
+                minimapCtx.globalAlpha = isChecked ? 0.3 : 1.0;
+                minimapCtx.fillStyle = room.color;
+                minimapCtx.fillRect(minimapOffsetX + x * minimapScale - w * minimapScale / 2, minimapOffsetY + z * minimapScale - d * minimapScale / 2, w * minimapScale, d * minimapScale);
+                minimapCtx.globalAlpha = 1.0;
+
+                // 部屋番号を表示
+                const roomNumber = index + 1;
+                minimapCtx.fillStyle = '#ffffff';
+                minimapCtx.font = 'bold 10px sans-serif';
+                minimapCtx.textAlign = 'center';
+                minimapCtx.textBaseline = 'middle';
+                minimapCtx.fillText(roomNumber.toString(), minimapOffsetX + x * minimapScale, minimapOffsetY + z * minimapScale);
+            });
+
+            palaceData.paths.forEach(path => {
+                const from = roomMap[path.from];
+                const to = roomMap[path.to];
+                if (!from || !to || from.data.floor !== currentFloor) return;
+                minimapCtx.strokeStyle = path.color;
+                minimapCtx.lineWidth = 3;
+                minimapCtx.beginPath();
+                minimapCtx.moveTo(minimapOffsetX + from.position[0] * minimapScale, minimapOffsetY + from.position[2] * minimapScale);
+                minimapCtx.lineTo(minimapOffsetX + to.position[0] * minimapScale, minimapOffsetY + to.position[2] * minimapScale);
+                minimapCtx.stroke();
+            });
+
+            minimapCtx.fillStyle = '#ff0000';
+            minimapCtx.beginPath();
+            minimapCtx.arc(minimapOffsetX + camera.position.x * minimapScale, minimapOffsetY + camera.position.z * minimapScale, 5, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            minimapCtx.strokeStyle = '#ff0000';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.beginPath();
+            minimapCtx.moveTo(minimapOffsetX + camera.position.x * minimapScale, minimapOffsetY + camera.position.z * minimapScale);
+            const viewLength = 15;
+            minimapCtx.lineTo(minimapOffsetX + camera.position.x * minimapScale - Math.sin(camera.rotation.y) * viewLength, minimapOffsetY + camera.position.z * minimapScale - Math.cos(camera.rotation.y) * viewLength);
+            minimapCtx.stroke();
+        }
+
+        const keys = {};
+        const moveSpeed = 0.1;
+        const rotateSpeed = 0.03;
+        let mouseX = 0, mouseY = 0, isMouseDown = false;
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === 'e' || e.key === 'E') {
+                console.log(`E キー押下。現在位置: (${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`);
+                console.log(`階段数: ${stairs.length}`);
+
+                // 現在位置で最も近い階段を1つだけ見つける
+                let nearestStair = null;
+                let nearestDist = Infinity;
+
+                stairs.forEach((stair, index) => {
+                    const dist = Math.sqrt((camera.position.x - stair.mesh.position.x)**2 + (camera.position.z - stair.mesh.position.z)**2);
+                    console.log(`階段${index}: 距離=${dist.toFixed(2)}, 方向=${stair.direction}, 位置=(${stair.mesh.position.x}, ${stair.mesh.position.y}, ${stair.mesh.position.z})`);
+
+                    if (dist < 2 && dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestStair = stair;
+                    }
+                });
+
+                // 最も近い階段を1つだけ使用
+                if (nearestStair) {
+                    let targetRoom = null;
+                    if (nearestStair.direction === 'up') {
+                        // 上がる階段：toの部屋に移動
+                        targetRoom = roomMap[nearestStair.data.to];
+                        console.log(`上がる階段使用: ${nearestStair.data.from} → ${nearestStair.data.to}`);
+                    } else if (nearestStair.direction === 'down') {
+                        // 降りる階段：fromの部屋に移動
+                        targetRoom = roomMap[nearestStair.data.from];
+                        console.log(`降りる階段使用: ${nearestStair.data.to} → ${nearestStair.data.from}`);
+                    }
+
+                    if (targetRoom) {
+                        camera.position.set(targetRoom.position[0], targetRoom.position[1] + 1.7, targetRoom.position[2]);
+                        console.log(`階段で${nearestStair.direction === 'up' ? '上の階' : '下の階'}に移動しました → (${targetRoom.position[0]}, ${targetRoom.position[1] + 1.7}, ${targetRoom.position[2]})`);
+                    } else {
+                        console.error(`移動先の部屋が見つかりません`);
+                    }
+                } else {
+                    console.log('近くに階段がありません');
+                }
+            }
+        });
+        document.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        renderer.domElement.addEventListener('mousedown', (e) => { isMouseDown = true; mouseX = e.clientX; mouseY = e.clientY; });
+        renderer.domElement.addEventListener('mouseup', () => isMouseDown = false);
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                camera.rotation.y -= (e.clientX - mouseX) * 0.002;
+                camera.rotation.x -= (e.clientY - mouseY) * 0.002;
+                camera.rotation.x = Math.max(-Math.PI/4, Math.min(Math.PI/4, camera.rotation.x));
+                mouseX = e.clientX; mouseY = e.clientY;
+            }
+        });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        renderer.domElement.addEventListener('click', (e) => {
+            if (isMouseDown) return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(papers.map(p => p.mesh));
+            if (intersects.length > 0) {
+                const paper = papers.find(p => p.mesh === intersects[0].object);
+                if (paper) showModal(paper.data, paper.roomId);
+            }
+        });
+
+        // タッチ操作対応（iPad/iPhone用）
+        let touchStartX = 0, touchStartY = 0;
+        let touchMoveX = 0, touchMoveY = 0;
+        let isTouching = false;
+        let touchStartTime = 0;
+
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isTouching = true;
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchMoveX = touchStartX;
+                touchMoveY = touchStartY;
+                touchStartTime = Date.now();
+            }
+        }, { passive: true });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1 && isTouching) {
+                touchMoveX = e.touches[0].clientX;
+                touchMoveY = e.touches[0].clientY;
+
+                const deltaX = touchMoveX - touchStartX;
+                const deltaY = touchMoveY - touchStartY;
+
+                // 横スワイプ: 回転
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    camera.rotation.y -= deltaX * 0.005;
+                    touchStartX = touchMoveX;
+                }
+                // 縦スワイプ: 前進/後退
+                else {
+                    const moveAmount = -deltaY * 0.01;
+                    camera.position.x -= Math.sin(camera.rotation.y) * moveAmount;
+                    camera.position.z -= Math.cos(camera.rotation.y) * moveAmount;
+                    touchStartY = touchMoveY;
+                }
+            }
+        }, { passive: true });
+
+        renderer.domElement.addEventListener('touchend', (e) => {
+            if (isTouching) {
+                const touchDuration = Date.now() - touchStartTime;
+                const touchDistance = Math.sqrt((touchMoveX - touchStartX)**2 + (touchMoveY - touchStartY)**2);
+
+                // タップ（短時間かつ短距離の場合）→ 紙をクリック
+                if (touchDuration < 200 && touchDistance < 10) {
+                    mouse.x = (touchStartX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(touchStartY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects = raycaster.intersectObjects(papers.map(p => p.mesh));
+                    if (intersects.length > 0) {
+                        const paper = papers.find(p => p.mesh === intersects[0].object);
+                        if (paper) showModal(paper.data, paper.roomId);
+                    }
+                }
+
+                isTouching = false;
+            }
+        }, { passive: true });
+
+        function showModal(data, roomId) {
+            document.getElementById('modal-title').textContent = data.title;
+            let content = '';
+
+            // チェックボックス（最初に配置）
+            const isChecked = checkedRooms[roomId] || false;
+            content += `<div class="checkbox-container" onclick="toggleRoomCheck('${roomId}', event)">`;
+            content += `<input type="checkbox" id="check-${roomId}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleRoomCheck('${roomId}', event)">`;
+            content += `<label for="check-${roomId}">✅ この部屋は覚えました</label>`;
+            content += `</div>`;
+
+            // 基本情報（常に表示）
+            data.lines.forEach(line => { content += `<p>${line}</p>`; });
+
+            // 詳細情報（部屋詳細情報.jsonから取得）
+            if (roomDetails[roomId]) {
+                const detail = roomDetails[roomId];
+                if (detail.detail) {
+                    content += `<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; color: #333;">`;
+                    content += `<strong style="color: #3b82f6;">詳細説明</strong><br><br>`;
+                    content += `${detail.detail}`;
+                    content += `</div>`;
+                }
+            }
+
+            // 判例（詳細情報から取得）- クリックでGoogle検索
+            const cases = roomDetails[roomId]?.cases || data.cases || [];
+            if (cases.length > 0) {
+                content += '<div class="cases" style="margin-top: 15px;"><strong>判例</strong><br>';
+                cases.forEach(c => {
+                    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(c)}`;
+                    content += `・<a href="${searchUrl}" target="_blank" style="color: #f59e0b; text-decoration: underline; cursor: pointer;">${c}</a><br>`;
+                });
+                content += '</div>';
+            }
+
+            // フォルダリンク
+            const folderPath = 'file:///Users/atsushiyukimoto/Library/Mobile%20Documents/iCloud~md~obsidian/Documents/boxes/Academic/%E6%86%B2%E6%B3%95%E8%A8%98%E6%86%B6%E3%81%AE%E5%AE%AE%E6%AE%BF3D/';
+            content += `<div style="margin-top: 20px; padding: 10px; background: #e0f2fe; border-radius: 5px; border-left: 4px solid #0ea5e9;">`;
+            content += `<strong style="color: #0369a1;">📂 関連資料</strong><br>`;
+            content += `<a href="${folderPath}" target="_blank" style="color: #0284c7; text-decoration: underline; cursor: pointer;">フォルダを開く</a>`;
+            content += `<span style="font-size: 12px; color: #64748b; margin-left: 10px;">(ブラウザの設定により動作しない場合があります)</span>`;
+            content += `</div>`;
+
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        // チェック状態をトグル
+        function toggleRoomCheck(roomId, event) {
+            if (event) event.stopPropagation();
+
+            const checkbox = document.getElementById(`check-${roomId}`);
+            const isChecked = checkbox.checked;
+
+            checkedRooms[roomId] = isChecked;
+            saveCheckedRooms(checkedRooms);
+
+            // 部屋の透明度を変更
+            setRoomOpacity(roomId, isChecked ? 0.3 : 1.0);
+
+            console.log(`部屋 ${roomId} をチェック: ${isChecked}`);
+        }
+
+
+        function showAnswer(index, roomId, showFullAnswer = false) {
+            const detail = roomDetails[roomId];
+            if (!detail || !detail.problems || !detail.problems[index]) return;
+
+            const prob = detail.problems[index];
+            const answerDiv = document.getElementById(`answer-${index}`);
+
+            if (showFullAnswer) {
+                answerDiv.innerHTML = `<strong>答え:</strong> ${prob.answer}`;
+            } else {
+                answerDiv.innerHTML = `<strong>ヒント:</strong> ${prob.hint}`;
+            }
+            answerDiv.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Enterキーでモーダルを閉じる
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('modal').style.display === 'block') {
+                closeModal();
+            }
+        });
+
+        // オーバーレイクリックでモーダルを閉じる
+        document.getElementById('overlay').addEventListener('click', closeModal);
+
+        function toggleFloorMenu() {
+            const menu = document.getElementById('floor-menu');
+            console.log('toggleFloorMenu called, current display:', menu.style.display);
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+                console.log('Menu opened');
+            } else {
+                menu.style.display = 'none';
+                console.log('Menu closed');
+            }
+        }
+
+        function changeFloor(floorId) {
+            console.log('changeFloor called with:', floorId);
+            // フロアの最初の部屋を探す
+            const firstRoom = palaceData.rooms.find(room => room.floor === floorId);
+            if (firstRoom) {
+                const [x, y, z] = firstRoom.position;
+                camera.position.set(x, y + 1.7, z);
+                console.log(`${floorId}に移動しました → ${firstRoom.name} (${x}, ${y + 1.7}, ${z})`);
+            }
+            // メニューを閉じる
+            document.getElementById('floor-menu').style.display = 'none';
+        }
+
+        // イベントリスナーを登録（Safari対応）- 即座に実行
+        (function setupFloorMenuEvents() {
+            console.log('Setting up floor menu event listeners');
+
+            // 現在位置クリックでメニュー開閉
+            const currentFloor = document.getElementById('current-floor');
+            if (currentFloor) {
+                currentFloor.addEventListener('click', (e) => {
+                    console.log('Current floor clicked');
+                    e.stopPropagation();
+                    toggleFloorMenu();
+                });
+            }
+
+            // 各階層選択肢にクリックイベント
+            const floorMenu = document.getElementById('floor-menu');
+            if (floorMenu) {
+                const menuItems = floorMenu.querySelectorAll('div[data-floor]');
+                menuItems.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        console.log('Menu item clicked:', item.dataset.floor);
+                        e.stopPropagation();
+                        changeFloor(item.dataset.floor);
+                    });
+                });
+
+                // メニュー外をクリックしたら閉じる
+                document.addEventListener('click', (e) => {
+                    if (!floorMenu.contains(e.target) && !currentFloor.contains(e.target)) {
+                        if (floorMenu.style.display === 'block') {
+                            floorMenu.style.display = 'none';
+                            console.log('Menu closed by outside click');
+                        }
+                    }
+                });
+            }
+
+            console.log('Event listeners setup complete');
+        })();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (keys['ArrowUp']) {
+                camera.position.x -= Math.sin(camera.rotation.y) * moveSpeed;
+                camera.position.z -= Math.cos(camera.rotation.y) * moveSpeed;
+            }
+            if (keys['ArrowDown']) {
+                camera.position.x += Math.sin(camera.rotation.y) * moveSpeed;
+                camera.position.z += Math.cos(camera.rotation.y) * moveSpeed;
+            }
+            if (keys['ArrowLeft']) camera.rotation.y += rotateSpeed;
+            if (keys['ArrowRight']) camera.rotation.y -= rotateSpeed;
+
+            let nearStair = null;
+            stairs.forEach(stair => {
+                const dist = Math.sqrt((camera.position.x - stair.mesh.position.x)**2 + (camera.position.z - stair.mesh.position.z)**2);
+                if (dist < 2) {
+                    nearStair = stair.direction;
+                }
+            });
+            const promptEl = document.getElementById('stair-prompt');
+            if (nearStair) {
+                promptEl.textContent = nearStair === 'up' ? 'E キーで上の階へ' : 'E キーで下の階へ';
+                promptEl.style.display = 'block';
+            } else {
+                promptEl.style.display = 'none';
+            }
+
+            const y = camera.position.y;
+            let floorName = '地下フロア（1年生）';
+            if (y > 16) floorName = '5階フロア（6年生）';
+            else if (y > 12) floorName = '4階フロア（5年生）';
+            else if (y > 8) floorName = '3階フロア（4年生）';
+            else if (y > 4) floorName = '2階フロア（3年生）';
+            else if (y > 0) floorName = '1階フロア（2年生）';
+            document.getElementById('current-floor').textContent = floorName + ' 🔽';
+
+            drawMinimap();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // エクスポート機能
+        function exportProgress() {
+            const totalRooms = palaceData.rooms.length;
+            const checkedCount = Object.keys(checkedRooms).filter(key => checkedRooms[key]).length;
+            const percentage = ((checkedCount / totalRooms) * 100).toFixed(1);
+            const date = new Date().toISOString();
+
+            // CSV形式で作成
+            let csv = 'エクスポート日時,総部屋数,習得済み部屋数,習得率\n';
+            csv += `${date},${totalRooms},${checkedCount},${percentage}%\n\n`;
+            csv += '部屋ID,部屋名,タイトル,習得済み\n';
+
+            palaceData.rooms.forEach(room => {
+                const checked = checkedRooms[room.id] ? '○' : '×';
+                csv += `${room.id},"${room.name}","${room.info.title}",${checked}\n`;
+            });
+
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });  // BOM付きUTF-8
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `小学生算数記憶の宮殿_学習進捗_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            console.log(`進捗をエクスポートしました: ${checkedCount}/${totalRooms}部屋 (${percentage}%)`);
+        }
+
+        function exportHTML() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `小学生算数記憶の宮殿_${new Date().toISOString().split('T')[0]}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            console.log('HTMLファイルをエクスポートしました');
+        }
+
+        // 音楽プレーヤー機能
+        const bgMusic = document.getElementById('bg-music');
+        const playBtn = document.getElementById('play-btn');
+        const nowPlayingDiv = document.getElementById('now-playing');
+        const musicFileInput = document.getElementById('music-file');
+        const volumeSlider = document.getElementById('volume');
+        const volumeValue = document.getElementById('volume-value');
+
+        // ファイル選択時の処理
+        musicFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                bgMusic.src = url;
+                nowPlayingDiv.textContent = `♪ ${file.name}`;
+                console.log(`音楽ファイルを読み込みました: ${file.name}`);
+            }
+        });
+
+        // 再生/一時停止トグル
+        function togglePlay() {
+            if (!bgMusic.src) {
+                alert('先に音楽ファイルを選択してください');
+                return;
+            }
+
+            if (bgMusic.paused) {
+                bgMusic.play();
+                playBtn.textContent = '⏸️ 一時停止';
+                playBtn.classList.add('playing');
+            } else {
+                bgMusic.pause();
+                playBtn.textContent = '▶️ 再生';
+                playBtn.classList.remove('playing');
+            }
+        }
+
+        // 停止
+        function stopMusic() {
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+            playBtn.textContent = '▶️ 再生';
+            playBtn.classList.remove('playing');
+        }
+
+        // 音量調整
+        function changeVolume(value) {
+            bgMusic.volume = value / 100;
+            volumeValue.textContent = value;
+        }
+
+        // ループ再生切り替え
+        function toggleLoop(checked) {
+            bgMusic.loop = checked;
+        }
+
+        // 初期音量設定
+        bgMusic.volume = 0.5;
+
+        // 曲が終わった時の処理
+        bgMusic.addEventListener('ended', function() {
+            if (!bgMusic.loop) {
+                playBtn.textContent = '▶️ 再生';
+                playBtn.classList.remove('playing');
+            }
+        });
+
+        animate();
+    </script>
+</body>
+</html>
