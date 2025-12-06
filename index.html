@@ -994,9 +994,15 @@
                 problems.forEach((prob, index) => {
                     content += `<div style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 5px;">`;
                     content += `<strong>問題${index + 1}:</strong> ${prob.question}<br>`;
-                    content += `<button onclick="showAnswer(${index}, '${roomId}')" style="margin-top: 8px; padding: 5px 15px; background: #3b82f6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">💡 ヒントを見る</button> `;
-                    content += `<button onclick="showAnswer(${index}, '${roomId}', true)" style="margin-top: 8px; padding: 5px 15px; background: #10b981; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">✅ 答えを見る</button>`;
-                    content += `<div id="answer-${index}" style="display: none; margin-top: 10px; padding: 10px; background: #dcfce7; border-radius: 5px;"></div>`;
+                    content += `<div style="margin-top: 10px;">`;
+                    content += `<input type="text" id="answer-input-${index}" placeholder="答えを入力してください" style="padding: 8px; border: 2px solid #cbd5e1; border-radius: 3px; width: 200px; font-size: 14px;">`;
+                    content += `<button onclick="checkAnswer(${index}, '${roomId}')" style="margin-left: 5px; padding: 8px 15px; background: #8b5cf6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;">📝 回答する</button>`;
+                    content += `</div>`;
+                    content += `<div style="margin-top: 8px;">`;
+                    content += `<button onclick="showHint(${index}, '${roomId}')" style="padding: 5px 15px; background: #3b82f6; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">💡 ヒントを見る</button> `;
+                    content += `<button onclick="showAnswer(${index}, '${roomId}')" style="padding: 5px 15px; background: #10b981; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">✅ 答えを見る</button>`;
+                    content += `</div>`;
+                    content += `<div id="result-${index}" style="display: none; margin-top: 10px; padding: 10px; border-radius: 5px;"></div>`;
                     content += `</div>`;
                 });
                 content += `</div>`;
@@ -1024,19 +1030,69 @@
         }
 
 
-        function showAnswer(index, roomId, showFullAnswer = false) {
+        // 回答をチェックする関数
+        function checkAnswer(index, roomId) {
             const detail = roomDetails[roomId];
             if (!detail || !detail.problems || !detail.problems[index]) return;
 
             const prob = detail.problems[index];
-            const answerDiv = document.getElementById(`answer-${index}`);
+            const inputElement = document.getElementById(`answer-input-${index}`);
+            const resultDiv = document.getElementById(`result-${index}`);
+            const userAnswer = inputElement.value.trim();
 
-            if (showFullAnswer) {
-                answerDiv.innerHTML = `<strong>答え:</strong> ${prob.answer}`;
-            } else {
-                answerDiv.innerHTML = `<strong>ヒント:</strong> ${prob.hint}`;
+            if (!userAnswer) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#fef3c7';
+                resultDiv.style.color = '#92400e';
+                resultDiv.innerHTML = '<strong>⚠️ 答えを入力してください</strong>';
+                return;
             }
-            answerDiv.style.display = 'block';
+
+            // 正解判定（複数の正解形式に対応）
+            const correctAnswer = prob.answer.toLowerCase().replace(/\s/g, '');
+            const userAnswerNormalized = userAnswer.toLowerCase().replace(/\s/g, '');
+
+            if (correctAnswer.includes(userAnswerNormalized) || userAnswerNormalized.includes(correctAnswer)) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.color = '#065f46';
+                resultDiv.innerHTML = '<strong>🎉 正解です！すばらしい！</strong>';
+                inputElement.style.borderColor = '#10b981';
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.color = '#991b1b';
+                resultDiv.innerHTML = `<strong>❌ 不正解です</strong><br>もう一度考えてみましょう。ヒントを見てみるのもいいですよ！`;
+                inputElement.style.borderColor = '#ef4444';
+            }
+        }
+
+        // ヒントを表示する関数
+        function showHint(index, roomId) {
+            const detail = roomDetails[roomId];
+            if (!detail || !detail.problems || !detail.problems[index]) return;
+
+            const prob = detail.problems[index];
+            const resultDiv = document.getElementById(`result-${index}`);
+
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#dbeafe';
+            resultDiv.style.color = '#1e40af';
+            resultDiv.innerHTML = `<strong>💡 ヒント:</strong> ${prob.hint}`;
+        }
+
+        // 答えを表示する関数
+        function showAnswer(index, roomId) {
+            const detail = roomDetails[roomId];
+            if (!detail || !detail.problems || !detail.problems[index]) return;
+
+            const prob = detail.problems[index];
+            const resultDiv = document.getElementById(`result-${index}`);
+
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#dcfce7';
+            resultDiv.style.color = '#166534';
+            resultDiv.innerHTML = `<strong>✅ 答え:</strong> ${prob.answer}`;
         }
 
         function closeModal() {
