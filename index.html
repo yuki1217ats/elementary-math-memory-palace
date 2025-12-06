@@ -1062,6 +1062,7 @@
         function handleEnterKey(event, index, roomId) {
             if (event.key === 'Enter') {
                 event.preventDefault();
+                event.stopPropagation(); // モーダルを閉じるイベントの伝播を止める
                 checkAnswer(index, roomId);
             }
         }
