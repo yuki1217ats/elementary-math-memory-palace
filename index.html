@@ -823,15 +823,25 @@
                 console.log(`E キー押下。現在位置: (${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`);
                 console.log(`階段数: ${stairs.length}`);
 
-                // 現在位置で最も近い階段を1つだけ見つける
+                // 現在位置で最も近い階段を1つだけ見つける（同じ階にある階段のみ）
                 let nearestStair = null;
                 let nearestDist = Infinity;
+                const currentFloorName = getFloorName(camera.position.y);
 
                 stairs.forEach((stair, index) => {
-                    const dist = Math.sqrt((camera.position.x - stair.mesh.position.x)**2 + (camera.position.z - stair.mesh.position.z)**2);
-                    console.log(`階段${index}: 距離=${dist.toFixed(2)}, 方向=${stair.direction}, 位置=(${stair.mesh.position.x}, ${stair.mesh.position.y}, ${stair.mesh.position.z})`);
+                    // 階段のy座標でフロア判定
+                    const stairFloorName = getFloorName(stair.mesh.position.y);
 
-                    if (dist < 2 && dist < nearestDist) {
+                    // 現在のフロアにある階段のみ検出
+                    if (stairFloorName !== currentFloorName) {
+                        console.log(`階段${index}: スキップ（異なる階: ${stairFloorName} vs ${currentFloorName}）`);
+                        return;
+                    }
+
+                    const dist = Math.sqrt((camera.position.x - stair.mesh.position.x)**2 + (camera.position.z - stair.mesh.position.z)**2);
+                    console.log(`階段${index}: 距離=${dist.toFixed(2)}, 方向=${stair.direction}, 位置=(${stair.mesh.position.x}, ${stair.mesh.position.y}, ${stair.mesh.position.z}), フロア=${stairFloorName}`);
+
+                    if (dist < 3 && dist < nearestDist) {
                         nearestDist = dist;
                         nearestStair = stair;
                     }
